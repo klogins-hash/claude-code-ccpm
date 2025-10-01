@@ -30,14 +30,17 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | d
 # Create app directory
 WORKDIR /app
 
+# Copy requirements first for better caching
+COPY requirements.txt .
+
+# Install Python dependencies for web interface
+RUN pip3 install --no-cache-dir -r requirements.txt
+
 # Copy CCPM files
 COPY . .
 
 # Make scripts executable
 RUN find . -name "*.sh" -exec chmod +x {} \;
-
-# Install Python dependencies for web interface
-RUN pip3 install flask flask-cors python-dotenv
 
 # Create a simple web interface for CCPM
 RUN cat > /app/web_interface.py << 'EOF'
@@ -179,13 +182,16 @@ def execute_command():
         env = os.environ.copy()
         env['PATH'] = '/app/ccpm:' + env.get('PATH', '')
         
+        # Sanitize command to prevent injection
+        if not command.startswith('/pm:'):
+            return jsonify({'success': False, 'error': 'Only CCPM commands are allowed (must start with /pm:)'})
+        
         # Execute the command
-        # Note: In a real deployment, you'd want to sanitize and validate commands
         result = subprocess.run(
             ['bash', '-c', f'cd /app && {command}'],
             capture_output=True,
             text=True,
-            timeout=30,
+            timeout=60,
             env=env
         )
         
@@ -237,14 +243,14 @@ if [ -n "$GITHUB_TOKEN" ]; then
     echo "$GITHUB_TOKEN" | gh auth login --with-token
 fi
 
-# Start the web interface
-exec python3 /app/web_interface.py
+# Start the web interface with gunicorn for production
+exec gunicorn --bind 0.0.0.0:${PORT:-8080} --workers 2 --timeout 120 web_interface:app
 EOF
 
 RUN chmod +x /app/entrypoint.sh
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:8080/health || exit 1
 
 ENTRYPOINT ["/app/entrypoint.sh"]

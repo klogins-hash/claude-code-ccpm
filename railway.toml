@@ -8,12 +8,8 @@ healthcheckTimeout = 300
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
 
-[[services]]
-name = "ccpm-web"
-
-[services.source]
-repo = "klogins-hash/claude-code-ccpm"
-branch = "main"
+[services]
+source = "klogins-hash/claude-code-ccpm"
 
 [services.variables]
 PORT = "8080"
