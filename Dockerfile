@@ -50,25 +50,7 @@ RUN chmod +x /app/web_interface.py
 # Expose port
 EXPOSE 8080
 
-# Set up entrypoint
-RUN cat > /app/entrypoint.sh << 'EOF'
-#!/bin/bash
-set -e
-
-# Initialize git config if not set
-git config --global user.name "${GIT_USER_NAME:-CCPM User}"
-git config --global user.email "${GIT_USER_EMAIL:-ccpm@example.com}"
-
-# Set up GitHub CLI authentication if token is provided
-if [ -n "$GITHUB_TOKEN" ]; then
-    echo "$GITHUB_TOKEN" | gh auth login --with-token
-fi
-
-# Start the web interface with gunicorn for production
-exec gunicorn --bind 0.0.0.0:${PORT:-8080} --workers 2 --timeout 120 web_interface:app
-EOF
-
-RUN chmod +x /app/entrypoint.sh
+# Entrypoint script is now copied as a separate file and already executable
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
