@@ -1,0 +1,26 @@
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
+
+[[services]]
+name = "ccpm-web"
+
+[services.source]
+repo = "klogins-hash/claude-code-ccpm"
+branch = "main"
+
+[services.variables]
+PORT = "8080"
+PYTHONUNBUFFERED = "1"
+NODE_ENV = "production"
+
+# These should be set in Railway dashboard as secrets
+# GITHUB_TOKEN = "your_github_token_here"
+# GIT_USER_NAME = "Your Name"
+# GIT_USER_EMAIL = "your.email@example.com"
